@@ -1,9 +1,15 @@
 ## Solution
 
-![yolo-bytetrack-parallel-processing](./yolo-bytetrack-parallel-processing.png)
+Deploys a stack that uses services as shown to process long videos with parallel processing.
 
-### Additional modified scripts needed
-- Marked as new and modified below:
+Using the 2 models below, we pass a sample video for inferencing to detect the objects and count / track:
+1. YOLO (You Only Look Once) for object detection https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml
+2. ByteTrack for object tracking https://github.com/ifzhang/ByteTrack
+
+- Use case sample is vehicle types detection and tracking based on YOLOv8 supported class
+- Sample videos in folder `cv-processing-gcp/gcp-terraform/sample-videos`
+
+![yolo-bytetrack-parallel-processing](./yolo-bytetrack-parallel-processing.png)
 
 ```
 cv-processing-gcp
@@ -44,8 +50,8 @@ cv-processing-gcp
 
 ### Part 1 - Video Segmentation:
 
-- Add a function to first break down video into each frame and divide them into smaller chunks (each chunk will be a sequence of frames)
-- Currently, with the unique request_id, breaking it down into batch for example: request_id_chunk_001, request_id_chunk_002, etc.
+- A function to first break down video into each frame and divide them into smaller chunks (each chunk will be a sequence of frames)
+- With the unique request_id, breaking it down into batch for example: request_id_chunk_001, request_id_chunk_002, etc.
 - Per request, store metadata (e.g. request ID, total number of chunks, list of chunk IDs with subsequent corresponding frame Id ranges and timestamps + results data)
 
 Example manifest.json
@@ -91,10 +97,10 @@ Example manifest.json
 
 ### Part 2 - Parallel Processing:
 
-- Create Cloud Run jobs to process the chunks in parallel. (Use Cloud Workflow to manage cloud run jobs as part of workflow. Configure auto scaling to scale basedo n load.
+- Create Cloud Run jobs to process the chunks in parallel. Use Cloud Workflow to manage cloud run jobs as part of workflow. Configure auto scaling to scale based on load.
 
 ### Part 3 - Ordering and Combining back results
-- When all jobs are done > trigger an 'video merge job' that runs to retrieve each chunk's result, based on the ordering/IDs, writing back the annotated frames and get the final video.
+- When all the jobs are completed > trigger an 'video merge job' that runs to retrieve each chunk's result, based on the ordering/IDs, writing back the annotated frames and get the final video.
 - Cloud Storage bucket will store the manifest, split_chunks/, processed_chunks/ (annotated chunks), and final merged video.
 
 - Example of each request's folder:
@@ -117,7 +123,7 @@ docker push asia-southeast1-docker.pkg.dev/{project_id}/video-split-job/video-sp
 3. upload a sample video to upload bucket
 4. workflow will be executed
 
-### Things to consider
+### Things to consider further
 - Scalability and performance - implement auto scaling for Cloud Run jobs and GKE clusters based on workload. Use Cloud Monitoring to trigger scaling events based on custom metrics.
 - Even distribution of tasks/jobs with load balancing, also for incoming requests
 - Error Handling and Recovery - Add to catch and log exceptions (try-catch) at each stage of the parallel processing pipeline. Implement logging to not only for troubleshooting, also to understand bottleneck of pipeline through tracing.
